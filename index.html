@@ -1,0 +1,902 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bank Manager</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f3f2ee; --panel:#ffffff; --ink:#1c2228; --muted:#68717c; --line:#e1dfd8;
+  --accent:#1f5f8b; --accent-ink:#ffffff; --good:#2c7a4b; --bad:#b3362c; --warn:#a96c12; --soft:#eef3f7;
+  --good-bg:#e5f3ea; --bad-bg:#f8e4e1; --warn-bg:#f8eedb;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#13161a; --panel:#1b1f24; --ink:#e6e8eb; --muted:#97a0aa; --line:#2b3138;
+    --accent:#6aa9d8; --accent-ink:#0d1a24; --good:#62c08a; --bad:#e46a5f; --warn:#e2ab4c; --soft:#212931;
+    --good-bg:#1d3326; --bad-bg:#3a2220; --warn-bg:#3a2f1c;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#13161a; --panel:#1b1f24; --ink:#e6e8eb; --muted:#97a0aa; --line:#2b3138;
+  --accent:#6aa9d8; --accent-ink:#0d1a24; --good:#62c08a; --bad:#e46a5f; --warn:#e2ab4c; --soft:#212931;
+  --good-bg:#1d3326; --bad-bg:#3a2220; --warn-bg:#3a2f1c;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",system-ui,sans-serif;font-size:15px;line-height:1.45}
+.num,td.n,.mono{font-family:"IBM Plex Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums}
+.hidden{display:none !important}
+.screen{max-width:1320px;margin:0 auto;padding:16px}
+h1{font-size:1.9rem;margin:.2em 0 .3em}
+h2{font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 10px;font-weight:600}
+h2 .sub{text-transform:none;letter-spacing:0;font-weight:400}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+button{font:inherit;cursor:pointer;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:9px 14px}
+button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
+button.primary:disabled{opacity:.45;cursor:not-allowed}
+button.ghost{background:transparent}
+input[type=text],textarea{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;width:100%}
+textarea{min-height:80px;resize:vertical}
+/* intro */
+.intro-grid{display:grid;grid-template-columns:1.2fr 1fr;gap:16px;margin-top:12px}
+.intro-grid .panel p{margin:.4em 0}
+.field{margin:10px 0}
+.field label{display:block;font-size:.85rem;color:var(--muted);margin-bottom:4px}
+.tag{display:inline-block;font-size:.75rem;padding:2px 8px;border-radius:99px;background:var(--soft);color:var(--muted);margin:2px 4px 2px 0}
+/* top bar */
+.topbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px 18px;margin-bottom:14px}
+.brand{font-weight:700;font-size:1.15rem;margin-right:auto}
+.stat{display:flex;flex-direction:column;min-width:86px}
+.stat .k{font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.stat .v{font-family:"IBM Plex Mono",monospace;font-weight:600;font-size:1.05rem}
+.daybar{height:6px;background:var(--soft);border-radius:4px;overflow:hidden;margin-top:4px}
+.daybar>div{height:100%;background:var(--accent)}
+/* layout */
+.layout{display:grid;grid-template-columns:1.05fr 1.25fr 1fr;gap:14px}
+.wide{grid-column:1 / span 2}
+.wide2{grid-column:3}
+@media (max-width:1100px){.layout{grid-template-columns:1fr 1fr}.wide,.wide2{grid-column:1 / -1}}
+@media (max-width:740px){.layout{grid-template-columns:1fr}.intro-grid{grid-template-columns:1fr}.screen{padding:12px 16px}}
+/* balance sheet */
+table{width:100%;border-collapse:collapse}
+#bs td,#bs th{padding:5px 4px;border-bottom:1px solid var(--line);font-size:.9rem}
+#bs th{font-size:.72rem;color:var(--muted);text-align:right;font-weight:600}
+#bs th:first-child{text-align:left}
+#bs td.n{text-align:right}
+#bs tr.sec td{font-weight:600;color:var(--muted);font-size:.75rem;text-transform:uppercase;letter-spacing:.06em;border-bottom:none;padding-top:12px}
+#bs tr.tot td{font-weight:600;border-top:2px solid var(--line)}
+.up{color:var(--good)} .down{color:var(--bad)}
+.note{font-size:.8rem;color:var(--muted);margin:8px 0 0}
+/* levers */
+.lever{padding:9px 0;border-bottom:1px dashed var(--line)}
+.lever:last-of-type{border-bottom:none}
+.lever .row{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.lever .lab{font-weight:500}
+.lever .val{display:flex;align-items:center;gap:4px}
+.lever input[type=number]{width:84px;font-family:"IBM Plex Mono",monospace;text-align:right;padding:4px 6px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink)}
+.lever input[type=range]{width:100%;accent-color:var(--accent);margin:6px 0 2px}
+.lever .help{font-size:.78rem;color:var(--muted)}
+.lever .rng{display:flex;justify-content:space-between;font-size:.7rem;color:var(--muted);font-family:"IBM Plex Mono",monospace}
+.lever.disabled{opacity:.45}
+.errors{color:var(--bad);font-size:.85rem;min-height:1.2em;margin-top:8px}
+.btnrow{display:flex;gap:8px;justify-content:flex-end;margin-top:8px}
+/* regs */
+.reg{display:grid;grid-template-columns:1fr auto;gap:2px 8px;padding:7px 0;border-bottom:1px solid var(--line)}
+.reg .nm{font-weight:500}
+.reg .def{grid-column:1 / -1;font-size:.76rem;color:var(--muted)}
+.badge{font-size:.72rem;font-weight:600;padding:2px 8px;border-radius:99px}
+.badge.ok{background:var(--good-bg);color:var(--good)}
+.badge.no{background:var(--bad-bg);color:var(--bad)}
+.badge.warn{background:var(--warn-bg);color:var(--warn)}
+.meter{position:relative;height:14px;border-radius:7px;background:linear-gradient(90deg,var(--bad) 0 30%,var(--warn) 30% 60%,var(--good) 60% 100%);opacity:.9;margin:6px 0 4px}
+.meter .pin{position:absolute;top:-4px;width:4px;height:22px;background:var(--ink);border-radius:2px;transform:translateX(-2px)}
+.meter .tick{position:absolute;top:16px;font-size:.68rem;color:var(--muted);transform:translateX(-50%);white-space:nowrap}
+.meter .tickmark{position:absolute;top:0;width:2px;height:14px;background:var(--panel);transform:translateX(-1px)}
+.conf-txt{font-size:.82rem;color:var(--muted);margin-top:20px}
+.flows td{padding:3px 0;font-size:.86rem;border-bottom:1px dotted var(--line)}
+.flows td.n{text-align:right}
+.flows tr.tot td{font-weight:600;border-bottom:none}
+/* charts */
+.charts{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+@media (max-width:740px){.charts{grid-template-columns:1fr 1fr}}
+.chart .t{font-size:.75rem;color:var(--muted)}
+.chart svg{width:100%;height:auto;display:block}
+/* log */
+#log{list-style:none;padding:0;margin:0;max-height:300px;overflow:auto;font-size:.84rem}
+#log li{padding:6px 0;border-bottom:1px solid var(--line)}
+#log li .d{font-family:"IBM Plex Mono",monospace;color:var(--muted);margin-right:6px}
+#log li.bad{color:var(--bad)} #log li.ev{color:var(--accent)}
+/* modal */
+.modal{position:fixed;inset:0;background:rgba(10,14,18,.55);display:flex;align-items:center;justify-content:center;padding:16px;z-index:10}
+.modal .card{background:var(--panel);border-radius:12px;max-width:620px;width:100%;padding:20px 22px;max-height:90vh;overflow:auto;border:1px solid var(--line)}
+.modal .kicker{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);font-weight:600}
+.modal h3{margin:.25em 0 .4em;font-size:1.3rem}
+.choice{display:block;width:100%;text-align:left;margin:8px 0;padding:10px 12px}
+.choice b{display:block}
+.choice span{font-size:.82rem;color:var(--muted)}
+.choice:hover{border-color:var(--accent)}
+/* end */
+.statgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:12px 0}
+.statgrid .panel .k{font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.statgrid .panel .v{font-family:"IBM Plex Mono",monospace;font-size:1.3rem;font-weight:600}
+.outcome{font-size:1.5rem;font-weight:700}
+.outcome.ok{color:var(--good)} .outcome.no{color:var(--bad)}
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- ===================== INTRO ===================== -->
+<section id="intro" class="screen">
+  <h1>Bank Manager</h1>
+  <p style="color:var(--muted);max-width:760px">You have just been appointed manager of <b>Harborview Bank</b>. Run it for <b><span class="daysN">60</span> days</b>: earn profits for shareholders, stay within the regulator's rules, and keep the bank alive through whatever the market throws at you.</p>
+  <div class="intro-grid">
+    <div class="panel" id="rules"></div>
+    <div class="panel">
+      <h2>Start</h2>
+      <div class="field"><label for="sid">Student ID</label><input type="text" id="sid" autocomplete="off"></div>
+      <div class="field"><label for="sname">Name (optional)</label><input type="text" id="sname" autocomplete="off"></div>
+      <div class="field"><label for="scls">Class code</label><input type="text" id="scls" autocomplete="off"></div>
+      <div class="btnrow" style="justify-content:flex-start">
+        <button class="primary" id="startBtn">Start new game</button>
+        <button id="resumeBtn" class="hidden">Resume saved game</button>
+      </div>
+      <p class="note" id="setupNote"></p>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== GAME ===================== -->
+<section id="game" class="screen hidden">
+  <header class="topbar">
+    <div class="brand">Harborview Bank</div>
+    <div id="stats" style="display:flex;flex-wrap:wrap;gap:10px 18px"></div>
+    <button id="helpBtn" class="ghost" title="Rules">Rules</button>
+  </header>
+  <div class="layout">
+    <div class="panel">
+      <h2>Balance sheet <span class="sub">· $ millions</span></h2>
+      <table id="bs"></table>
+      <p class="note">“End of today” is the expected position if your decisions are submitted and nothing unexpected happens. Actual results include random deposit movements and hidden surprises.</p>
+    </div>
+    <div class="panel">
+      <h2>Today's decisions</h2>
+      <div id="levers"></div>
+      <div id="errors" class="errors"></div>
+      <div class="btnrow"><button id="resetBtn" class="ghost">Reset</button><button id="submitBtn" class="primary">Submit day</button></div>
+    </div>
+    <div class="panel">
+      <h2>Regulation</h2>
+      <div id="regs"></div>
+      <h2 style="margin-top:16px">Depositor confidence</h2>
+      <div id="conf"></div>
+      <h2 style="margin-top:16px">Expected today</h2>
+      <table class="flows" id="flows"></table>
+    </div>
+    <div class="panel wide">
+      <h2>History</h2>
+      <div class="charts" id="charts"></div>
+    </div>
+    <div class="panel wide2">
+      <h2>News &amp; log</h2>
+      <ul id="log"></ul>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== END ===================== -->
+<section id="end" class="screen hidden"></section>
+
+<div id="modal" class="modal hidden"><div class="card" id="modalCard"></div></div>
+</div>
+
+<script>
+"use strict";
+/* =====================================================================
+   ENGINE START  (no DOM access in this block)
+   ===================================================================== */
+const CFG = {
+  init: { cash:60, bondFace:240, bondPrice:1, bondCoupon:3.0, loans:700, loanRate:6.5,
+          depI:500, depU:300, wholesale:100, cb:0, r:3.0, comp:1.5, depRate:1.5, conf:75 },
+  daysPerYear: 52,      // interest compression: one game day earns ~1 week of interest
+  opex: 1.4,            // operating cost, % of assets per year
+  baseLossRate: 0.5,    // normal loan losses, % per year
+  amort: 0.0015,        // share of loans repaid each day
+  bondDur: 3,           // bond price sensitivity to rates
+  newLoanSpread: 3.5, wsSpread: 0.5, cbSpread: 1.0,
+  minCap: 10, minLiq: 100, minRes: 3,
+  fine: 0.15, closeCap: 5, maxCapBreachDays: 5,
+  fireDisc: 0.15, freezeDisc: 0.30,
+  bondSellCost: 0.002, freezeBondCost: 0.03, emergBondCost: 0.01,
+  wsCap: 200, wsConfMin: 45,
+  eqFee: 0.05, eqMax: 30, eqConfMin: 30,
+  panicScale: 0.20
+};
+
+function mulberry32(a){ return function(){ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a);
+  t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+function hash3(a,b,c){ let h=(a>>>0)^0x9e3779b9; h=Math.imul(h^(b+0x7f4a7c15),2654435761); h^=h>>>15;
+  h=Math.imul(h^(c*0x27d4eb2d),2246822519); h^=h>>>13; return h>>>0; }
+function normal(rng){ let u=0; while(u===0) u=rng(); const v=rng(); return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v); }
+const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+
+const bondsMV = s => s.bondFace*s.bondPrice;
+const deposits = s => s.depI + s.depU;
+const assets = s => s.cash + bondsMV(s) + s.loans;
+const liabs = s => deposits(s) + s.wholesale + s.cb;
+const equity = s => assets(s) - liabs(s);
+const newsMult = s => ({slow:0.6, normal:1, fast:1.6})[s.params.news] || 1;
+
+const activeMods = (s,t) => s.mods.filter(m => m.type===t && s.day>=m.from && s.day<=m.until);
+const modSum  = (s,t) => activeMods(s,t).reduce((a,m)=>a+m.value,0);
+const modProd = (s,t) => activeMods(s,t).reduce((a,m)=>a*m.value,1);
+const modAny  = (s,t) => activeMods(s,t).length>0;
+
+function regs(s){
+  const e = equity(s);
+  const cap = s.loans>0.01 ? e/s.loans*100 : 999;
+  const stressOut = 0.05*s.depI + 0.15*s.depU + s.wholesale;
+  const liq = stressOut>0.01 ? (s.cash + 0.95*bondsMV(s))/stressOut*100 : 999;
+  const res = deposits(s)>0.01 ? s.cash/deposits(s)*100 : 999;
+  const capMin = CFG.minCap + modSum(s,'capAdd');
+  return { cap, liq, res, capMin, liqMin:CFG.minLiq, resMin:CFG.minRes,
+           okCap: cap>=capMin, okLiq: liq>=CFG.minLiq, okRes: res>=CFG.minRes };
+}
+// What depositors would think of the bank in calm times, based on visible fundamentals.
+function confTarget(s){
+  const g = regs(s);
+  return clamp(55 + 3*(Math.min(g.cap,25)-10) + 15*clamp(g.liq/100-1,-1,1), 5, 95);
+}
+
+/* ---------- events ---------- */
+const EVENT_PLAN = [[3,'TAX'],[8,'LOAN_OPP'],[12,'RATE_HIKE'],[17,'BIG_CLIENT'],[22,'RUMOR'],[27,'STRESS'],
+  [32,'CREDIT'],[36,'RATE_HIKE'],[40,'CONTAGION'],[45,'FREEZE'],[50,'RUMOR'],[54,'LOAN_OPP'],[58,'RATE_CUT']];
+
+function makeSchedule(p){
+  const rng = mulberry32(hash3(p.seed, 0, 99));
+  const out = []; const used = new Set();
+  for(const [base,type] of EVENT_PLAN){
+    let d = Math.round(base*p.days/60) + Math.floor(rng()*3) - 1;
+    d = clamp(d, 2, p.days-1);
+    while(used.has(d) && d < p.days-1) d++;
+    if(used.has(d)) continue;
+    used.add(d); out.push({day:d, type, m:rng(), done:false});
+  }
+  return out.sort((a,b)=>a.day-b.day);
+}
+
+const fm = (x,d=1) => (x<0?'−':'') + Math.abs(x).toFixed(d);
+
+const EVENTS = {
+  TAX: {
+    kicker:'Advance notice', title:'Corporate tax payments are coming',
+    prep:(s,m)=>({amt: deposits(s)*(0.03+0.015*m), due: Math.min(s.day+4, s.days)}),
+    body:(s,d)=>`Business customers must pay their quarterly taxes on <b>day ${d.due}</b>. Expect about <b>$${fm(d.amt)}M</b> of deposits to leave the bank that day. This is a normal, predictable outflow, not a sign of trouble.`,
+    choices:(s,d)=>[{label:'Noted', desc:'Plan your cash for that day.', apply:(s)=>{ s.pending.push({day:d.due, amount:d.amt, from:'all', label:'Tax payments'}); }}]
+  },
+  LOAN_OPP: {
+    kicker:'Business opportunity', title:'A property developer wants a large loan',
+    prep:(s,m)=>({amt: Math.round(40+20*m), rate: s.r+5.5}),
+    body:(s,d)=>`A developer asks for a <b>$${d.amt}M</b> loan at <b>${fm(d.rate,2)}%</b>, well above your usual loan rate. The project is profitable if it succeeds, but property loans are riskier than your typical book. The money leaves your cash account today.`,
+    choices:(s,d)=>[
+      {label:`Lend the full $${d.amt}M`, desc:'Highest return, highest risk and liquidity drain.', apply:(s)=>{ grantLoan(s,d.amt,d.rate); s.hidden.push({day:s.day+12, type:'oppDefault', prob:0.3, loss:d.amt*0.35, label:'developer loan'}); }},
+      {label:`Lend half ($${Math.round(d.amt/2)}M)`, desc:'Share the deal with another bank.', apply:(s)=>{ grantLoan(s,d.amt/2,d.rate); s.hidden.push({day:s.day+12, type:'oppDefault', prob:0.3, loss:d.amt/2*0.35, label:'developer loan'}); }},
+      {label:'Decline', desc:'Keep your balance sheet as it is.', apply:()=>{}}
+    ]
+  },
+  RATE_HIKE: {
+    kicker:'Central bank', title:'Policy interest rate raised',
+    prep:(s,m)=>({d: [0.5,0.75,0.75,1.0][Math.floor(m*4)]}),
+    body:(s,d)=>`The central bank raises its policy rate by <b>${fm(d.d,2)} points</b> to ${fm(s.r+d.d,2)}%. Existing bonds pay old, lower coupons, so their market price falls by about <b>${fm(CFG.bondDur*d.d,1)}%</b>. Competing banks raise deposit rates by about ${fm(0.7*d.d,2)} points; if you don't follow, deposits will drift away. New loans will earn more.`,
+    choices:(s,d)=>[{label:'Continue', desc:'', apply:(s)=>{ s.r+=d.d; s.comp+=0.7*d.d; s.bondPrice*=1-CFG.bondDur*d.d/100; }}]
+  },
+  BIG_CLIENT: {
+    kicker:'Client relations', title:'Your largest corporate depositor is leaving',
+    prep:(s,m)=>({amt: Math.min(30+15*m, deposits(s)*0.08)}),
+    body:(s,d)=>`A technology firm holding <b>$${fm(d.amt)}M</b> in uninsured deposits has been offered a better deal elsewhere and plans to move its money.`,
+    choices:(s,d)=>[
+      {label:'Let them go today', desc:`$${fm(d.amt)}M leaves today.`, apply:(s)=>{ s.pending.push({day:s.day, amount:d.amt, from:'U', label:'Corporate client exit'}); }},
+      {label:'Match their offer', desc:'They stay, but you pay 2.5 points extra on their balance for the rest of the game.', apply:(s)=>{ s.premium += d.amt*2.5; }},
+      {label:'Ask them to move it gradually', desc:'Outflow spread over 5 days, but word gets around.', apply:(s)=>{ for(let k=0;k<5;k++) s.pending.push({day:s.day+k, amount:d.amt/5, from:'U', label:'Corporate client exit'}); s.conf-=3; }}
+    ]
+  },
+  RUMOR: {
+    kicker:'Social media', title:'A post claims your bank is in trouble',
+    prep:(s,m)=>({h: (10+6*m)*newsMult(s)}),
+    body:(s,d)=>`A widely shared post says Harborview is “about to fail.” There is no new information behind it, but depositors are reading it. ${s.params.news==='fast'?'News spreads very fast in this market.':s.params.news==='slow'?'News spreads slowly in this market.':''} How do you respond?`,
+    choices:(s,d)=>[
+      {label:'Stay silent', desc:'Let the rumor burn out on its own.', apply:(s)=>{ s.conf-=d.h*1.25; rumorMod(s); }},
+      {label:'Issue a reassuring statement', desc:'“Harborview is safe and sound.” Works best if it is believable.', apply:(s)=>{ const g=regs(s); s.conf -= (g.cap>=12 && g.liq>=110) ? d.h*0.4 : d.h*1.8; rumorMod(s); }},
+      {label:'Publish detailed balance sheet data', desc:'Let depositors judge the facts for themselves.', apply:(s)=>{ const c=s.conf-d.h; s.conf = c + 0.7*(confTarget(s)-c); rumorMod(s); }}
+    ]
+  },
+  STRESS: {
+    kicker:'Regulator', title:'Supervisory stress period',
+    prep:(s,m)=>({until: s.day+9}),
+    body:(s,d)=>`Worried about the economy, the regulator raises the minimum capital ratio by <b>1.5 points</b> (to ${fm(CFG.minCap+1.5,1)}%) until <b>day ${d.until}</b>.`,
+    choices:(s,d)=>[{label:'Continue', desc:'', apply:(s)=>{ s.mods.push({type:'capAdd', value:1.5, from:s.day, until:d.until}); }}]
+  },
+  CREDIT: {
+    kicker:'Credit risk', title:'A major borrower cannot repay',
+    prep:(s,m)=>({loss: s.loans*(0.005+0.007*m)}),
+    body:(s,d)=>`A large manufacturing borrower is in financial distress. Your analysts estimate a loss of about <b>$${fm(d.loss)}M</b>. How do you handle it?`,
+    choices:(s,d)=>[
+      {label:'Recognize the loss now', desc:'Take the hit to equity today and disclose it.', apply:(s)=>{ s.loans-=d.loss; s.conf-=4; }},
+      {label:'Restructure quietly', desc:'Extend the loan and hope it recovers. Nothing is booked today.', apply:(s)=>{ s.hidden.push({day:s.day+8, type:'audit', prob:0.6, loss:d.loss*1.4, label:'restructured loan'}); }},
+      {label:'Sell the exposure to a distressed-debt fund', desc:'Get cash now at 50 cents on the dollar.', apply:(s)=>{ const x=Math.min(s.loans, d.loss*2.5); s.loans-=x; s.cash+=x*0.5; s.conf-=2; }}
+    ]
+  },
+  CONTAGION: {
+    kicker:'Financial news', title:'Another mid-sized bank has failed',
+    prep:(s,m)=>({}),
+    body:(s,d)=>`Depositors at a bank across town could not get their money out. Customers everywhere are now asking whether their own bank is safe. For the next few days, uninsured depositors will react more strongly to any sign of weakness.`,
+    choices:(s,d)=>[{label:'Continue', desc:'', apply:(s)=>{ s.conf-=10*newsMult(s); s.mods.push({type:'sensMult', value:1.6, from:s.day, until:s.day+5}); }}]
+  },
+  FREEZE: {
+    kicker:'Markets', title:'Financial markets freeze up',
+    prep:(s,m)=>({until: s.day+5}),
+    body:(s,d)=>`Investors are hoarding cash. Until <b>day ${d.until}</b>: selling bonds costs 3% (instead of 0.2%), loans can only be sold at a <b>30%</b> discount, and wholesale lenders will not lend and will pull 15% of their funding each day.`,
+    choices:(s,d)=>[{label:'Continue', desc:'', apply:(s)=>{ s.mods.push({type:'freeze', value:1, from:s.day, until:d.until}); }}]
+  },
+  RATE_CUT: {
+    kicker:'Central bank', title:'Policy interest rate cut',
+    prep:(s,m)=>({d:0.5}),
+    body:(s,d)=>`The central bank cuts its rate by <b>0.5 points</b>. Bond prices rise by about ${fm(CFG.bondDur*0.5,1)}%, and competitors lower their deposit rates slightly.`,
+    choices:(s,d)=>[{label:'Continue', desc:'', apply:(s)=>{ s.r-=d.d; s.comp-=0.35; s.bondPrice*=1+CFG.bondDur*d.d/100; }}]
+  }
+};
+function rumorMod(s){ s.mods.push({type:'sensMult', value:1.3, from:s.day, until:s.day+2}); }
+function grantLoan(s,x,rate){ s.loanRate=(s.loans*s.loanRate+x*rate)/(s.loans+x); s.loans+=x; s.cash-=x; }
+
+/* ---------- game lifecycle ---------- */
+function newGame(p){
+  const i = CFG.init;
+  let depI=i.depI, depU=i.depU;
+  if(p.insurance==='full'){ depI=i.depI+i.depU; depU=0; }
+  else if(p.insurance==='none'){ depI=0; depU=i.depI+i.depU; }
+  const s = { day:1, days:p.days, params:p, r:i.r, comp:i.comp, depRate:i.depRate,
+    cash:i.cash, bondFace:i.bondFace, bondPrice:i.bondPrice, bondCoupon:i.bondCoupon,
+    loans:i.loans, loanRate:i.loanRate, depI, depU, wholesale:i.wholesale, cb:i.cb,
+    conf:i.conf, raised:0, fines:0, premium:0, forcedLoss:0, mods:[], pending:[], hidden:[],
+    capBreach:0, status:'running', failReason:'', failDay:null, lastRun:0, loanDemand:0,
+    schedule: makeSchedule(p), event:null };
+  s.eq0 = equity(s);
+  startDay(s);
+  return s;
+}
+function startDay(s){
+  const rng = mulberry32(hash3(s.params.seed, s.day, 17));
+  s.loanDemand = modAny(s,'freeze') ? Math.round(2+rng()*3) : Math.round(5+rng()*7);
+  const ev = s.schedule.find(e=>e.day===s.day && !e.done);
+  if(ev){ ev.data = EVENTS[ev.type].prep(s, ev.m); s.event = ev; } else s.event = null;
+}
+function resolveEvent(s, idx){
+  const ev = s.event; if(!ev) return null;
+  const ch = EVENTS[ev.type].choices(s, ev.data)[idx];
+  ch.apply(s); s.conf = clamp(s.conf,0,100);
+  ev.done = true; ev.choice = ch.label; s.event = null;
+  return ch.label;
+}
+
+function limits(s){
+  const frz = modAny(s,'freeze');
+  const wsAvail = (s.conf>=CFG.wsConfMin && !frz) ? Math.max(0, Math.floor(CFG.wsCap - s.wholesale)) : 0;
+  const cbAvail = s.params.cb ? Math.max(0, Math.floor(Math.min(300, 0.95*bondsMV(s)+0.7*s.loans-s.cb))) : 0;
+  return {
+    depRate:[0,6], bonds:[-Math.floor(bondsMV(s)), 200], newLoans:[0, s.loanDemand],
+    sellLoans:[0, Math.floor(Math.min(s.loans,150))], ws:[-Math.floor(s.wholesale), wsAvail],
+    cbx:[-Math.floor(s.cb), cbAvail], equity:[0, s.conf>=CFG.eqConfMin ? CFG.eqMax : 0]
+  };
+}
+function defaultActions(s){
+  const a = {depRate:+s.depRate.toFixed(2), bonds:0, newLoans:0, sellLoans:0, ws:0, cbx:0, equity:0};
+  // If an event left cash negative, pre-fill the smallest bond sale that covers it (the student can change it).
+  if(s.cash < 0){ const c = modAny(s,'freeze')?CFG.freezeBondCost:CFG.bondSellCost;
+    a.bonds = -Math.min(Math.floor(bondsMV(s)), Math.ceil(-s.cash/(1-c)));
+    const left = -s.cash - (-a.bonds)*(1-c);
+    if(left > 0){ const d = modAny(s,'freeze')?CFG.freezeDisc:CFG.fireDisc; a.sellLoans = Math.min(Math.floor(Math.min(s.loans,150)), Math.ceil(left/(1-d))); } }
+  return a;
+}
+
+function applyActions(s,a){
+  const frz = modAny(s,'freeze'), nm = newsMult(s);
+  s.depRate = a.depRate;
+  // sources of cash
+  if(a.bonds<0){ const x=Math.min(-a.bonds, bondsMV(s)); const c=frz?CFG.freezeBondCost:CFG.bondSellCost;
+    s.bondFace -= x/s.bondPrice; s.cash += x*(1-c); }
+  if(a.sellLoans>0){ const x=Math.min(a.sellLoans, s.loans); const d=frz?CFG.freezeDisc:CFG.fireDisc;
+    s.loans -= x; s.cash += x*(1-d); }
+  if(a.ws>0){ s.wholesale += a.ws; s.cash += a.ws; }
+  if(a.cbx>0){ s.cb += a.cbx; s.cash += a.cbx; if(s.params.stigma) s.conf -= 6*nm; }
+  if(a.equity>0){ s.cash += a.equity*(1-CFG.eqFee); s.raised += a.equity; s.conf += Math.min(8, a.equity/4); }
+  // uses of cash
+  if(a.ws<0){ const x=Math.min(-a.ws, s.wholesale); s.wholesale -= x; s.cash -= x; }
+  if(a.cbx<0){ const x=Math.min(-a.cbx, s.cb); s.cb -= x; s.cash -= x; }
+  if(a.bonds>0){ const x=a.bonds; const nf=x*(1-0.001)/s.bondPrice; const y=s.r+0.25;
+    s.bondCoupon = (s.bondFace*s.bondCoupon + nf*y*s.bondPrice)/(s.bondFace+nf); s.bondFace += nf; s.cash -= x; }
+  if(a.newLoans>0) grantLoan(s, a.newLoans, s.r+CFG.newLoanSpread);
+}
+
+function validate(s,a){
+  const errs=[]; const L=limits(s);
+  for(const k of Object.keys(L)){ if(a[k]<L[k][0]-1e-9 || a[k]>L[k][1]+1e-9) errs.push(`${k} is outside today's allowed range.`); }
+  const t = JSON.parse(JSON.stringify(s)); applyActions(t,a);
+  if(t.cash < -1e-9) errs.push(`Not enough cash for these decisions: short by $${fm(-t.cash)}M. Sell assets, borrow, or do less.`);
+  return errs;
+}
+
+// Settle the day after actions. det=true gives an expected-value preview (no randomness, no hidden surprises).
+function settleDay(s, det){
+  const rng = mulberry32(hash3(s.params.seed, s.day, 3));
+  const N = () => det ? 0 : normal(rng);
+  const nm = newsMult(s), frz = modAny(s,'freeze');
+  const rep = { msgs:[] };
+  const Y = CFG.daysPerYear;
+  // 1. interest
+  rep.inc = (s.loans*s.loanRate + s.bondFace*s.bondCoupon + s.cash*Math.max(0,s.r-2))/100/Y;
+  rep.intExp = (deposits(s)*s.depRate + s.premium + s.wholesale*(s.r+CFG.wsSpread) + s.cb*(s.r+CFG.cbSpread))/100/Y;
+  rep.opex = assets(s)*CFG.opex/100/Y;
+  s.cash += rep.inc - rep.intExp - rep.opex;
+  // 2. loans: normal losses and repayments
+  rep.loss = s.loans*CFG.baseLossRate/100/Y;
+  s.loans -= rep.loss;
+  rep.repay = s.loans*CFG.amort; s.loans -= rep.repay; s.cash += rep.repay;
+  // 3. hidden surprises (not previewed)
+  if(!det){
+    for(const h of s.hidden){
+      if(h.day!==s.day || h.done) continue; h.done=true;
+      const hr = mulberry32(hash3(s.params.seed, s.day, 555))();
+      if(h.type==='audit'){
+        s.loans -= Math.min(s.loans,h.loss);
+        if(hr<h.prob){ s.cash -= 1.0; s.fines += 1.0; s.conf -= 15; rep.msgs.push({cls:'bad', t:`Regulators discovered the ${h.label}. You booked a $${fm(h.loss)}M loss, paid a $1.0M penalty, and the story made the news.`}); }
+        else { s.conf -= 3; rep.msgs.push({cls:'bad', t:`The ${h.label} did not recover. You booked a $${fm(h.loss)}M loss.`}); }
+      } else if(h.type==='oppDefault'){
+        if(hr<h.prob){ s.loans -= Math.min(s.loans,h.loss); s.conf -= 3; rep.msgs.push({cls:'bad', t:`The ${h.label} went bad: $${fm(h.loss)}M loss.`}); }
+        else rep.msgs.push({cls:'', t:`The ${h.label} is performing well.`});
+      }
+    }
+  }
+  // 4. deposits: rate competition + noise + fear
+  const dI0=s.depI, dU0=s.depU, D0=dI0+dU0;
+  const gap = clamp(s.depRate - s.comp, -3, 3);
+  const fear = s.conf<60 ? Math.pow((60-s.conf)/60, 2) : 0;
+  const panicU = Math.min(0.3, CFG.panicScale*fear*modProd(s,'sensMult')*(0.5+0.5*nm));
+  const panicI = panicU*0.12;
+  const flowU = 0.003*gap + 0.003*N();
+  const flowI = 0.0012*gap + 0.0015*N();
+  let outU = dU0*(panicU-flowU), outI = dI0*(panicI-flowI);
+  rep.panicOut = dU0*panicU + dI0*panicI;
+  rep.rateFlow = -(dU0*0.003*gap + dI0*0.0012*gap);
+  rep.sched = 0;
+  for(const pd of s.pending){
+    if(pd.day!==s.day) continue;
+    if(pd.from==='U'){ const fromU=Math.min(pd.amount, Math.max(0,dU0-outU)); outU+=fromU; outI+=pd.amount-fromU; }
+    else { const sh = D0>0 ? dU0/D0 : 0; outU += pd.amount*sh; outI += pd.amount*(1-sh); }
+    rep.sched += pd.amount;
+  }
+  outU = Math.min(outU, s.depU); outI = Math.min(outI, s.depI);
+  s.depU -= outU; s.depI -= outI; s.cash -= outU+outI;
+  rep.depOut = outU+outI;
+  const runFrac = D0>0 ? rep.panicOut/D0 : 0;
+  if(gap>1.5) s.conf -= 1.5;   // paying far above market looks desperate
+  // 5. wholesale funding runs off when confidence is low or markets freeze
+  rep.wsOut = 0;
+  if(s.wholesale>0 && (s.conf<CFG.wsConfMin || frz)){
+    const f = frz ? 0.15 : clamp((CFG.wsConfMin-s.conf)/CFG.wsConfMin,0,1)*0.5;
+    rep.wsOut = s.wholesale*f; s.wholesale -= rep.wsOut; s.cash -= rep.wsOut;
+  }
+  // 6. emergency liquidity if cash is negative
+  rep.forced=0; rep.forcedLoss=0; rep.emCB=0; rep.fire=0;
+  liquidate(s, rep);
+  // 7. regulation: fines and closure
+  const g = regs(s); rep.fines=0; rep.breaches=[];
+  if(!g.okCap){ rep.fines+=CFG.fine; s.capBreach++; rep.breaches.push('capital'); } else s.capBreach=0;
+  if(!g.okLiq){ rep.fines+=CFG.fine; rep.breaches.push('liquidity'); }
+  if(!g.okRes){ rep.fines+=CFG.fine; rep.breaches.push('reserve'); }
+  s.cash -= rep.fines; s.fines += rep.fines;
+  if(rep.fines>0 && s.status==='running') liquidate(s, rep);
+  if(s.status==='running'){
+    if(equity(s)<=0){ s.status='failed'; s.failReason='insolvent'; s.failDay=s.day; }
+    else if(regs(s).cap < CFG.closeCap || s.capBreach>=CFG.maxCapBreachDays){ s.status='failed'; s.failReason='closed'; s.failDay=s.day; }
+  }
+  // 8. confidence: pulled toward fundamentals, pushed down by visible runs (herding)
+  const tgt = confTarget(s);
+  s.conf += 0.2*(tgt - s.conf) - 300*runFrac*nm + N()*1.2;
+  s.conf = clamp(s.conf, 0, 100);
+  s.lastRun = runFrac; rep.target = tgt;
+  return rep;
+}
+
+function liquidate(s, rep){
+  const frz = modAny(s,'freeze'), nm = newsMult(s);
+  if(s.cash < -1e-9){
+    const bc = frz?CFG.freezeBondCost:CFG.emergBondCost;
+    const sellB = Math.min(bondsMV(s), -s.cash/(1-bc));
+    if(sellB>0){ s.bondFace -= sellB/s.bondPrice; s.cash += sellB*(1-bc); rep.forced+=sellB; rep.forcedLoss+=sellB*bc; }
+    if(s.cash < -1e-9 && s.params.cb){
+      const avail = Math.max(0, 0.95*bondsMV(s)+0.7*s.loans-s.cb);
+      const b = Math.min(avail, -s.cash); s.cb+=b; s.cash+=b; rep.emCB=b;
+      if(b>0 && s.params.stigma) s.conf -= 8*nm;
+    }
+    if(s.cash < -1e-9){
+      const d = frz?CFG.freezeDisc:CFG.fireDisc;
+      const sellL = Math.min(s.loans, -s.cash/(1-d));
+      s.loans -= sellL; s.cash += sellL*(1-d); rep.forced+=sellL; rep.forcedLoss+=sellL*d; rep.fire=sellL;
+      if(sellL>0) s.conf -= 8*nm;
+    }
+    if(rep.forced>0 && rep.fire===0) s.conf -= 2;
+    s.forcedLoss += rep.forcedLoss;
+    if(s.cash < -1e-6){ s.status='failed'; s.failReason='illiquid'; s.failDay=s.day; }
+  }
+}
+
+function stepDay(s, a, det){
+  const e0=equity(s), r0=s.raised;
+  applyActions(s,a);
+  const rep = settleDay(s, det);
+  rep.profit = equity(s) - e0 - (s.raised - r0);
+  return rep;
+}
+function advance(s){
+  if(s.status!=='running') return;
+  if(s.day>=s.days){ s.status='completed'; return; }
+  s.day++; s.mods = s.mods.filter(m=>m.until>=s.day); startDay(s);
+}
+function snapshot(s, day){
+  const g=regs(s);
+  return { day, conf:s.conf, cash:s.cash, bonds:bondsMV(s), loans:s.loans, depI:s.depI, depU:s.depU,
+    ws:s.wholesale, cb:s.cb, eq:equity(s), profit:equity(s)-s.eq0-s.raised, r:s.r, depRate:s.depRate,
+    cap:g.cap, liq:g.liq, res:g.res };
+}
+function summary(s, hist){
+  const profit = equity(s)-s.eq0-s.raised;
+  const daysRun = s.failDay || s.days;
+  const survived = s.status==='completed';
+  return { survived, outcome: survived?'survived':s.failReason, failDay:s.failDay, daysRun,
+    profit, roe: profit/s.eq0*CFG.daysPerYear/daysRun*100,
+    score: survived ? profit : -s.eq0, fines:s.fines, forcedLoss:s.forcedLoss,
+    minConf: Math.min(...hist.map(h=>h.conf)), maxOut: Math.max(0,...hist.map(h=>h.out||0)),
+    breachDays: hist.filter(h=>h.breaches && h.breaches.length).length, equityEnd: equity(s) };
+}
+/* =====================================================================
+   ENGINE END
+   ===================================================================== */
+
+/* ============================ UI ============================ */
+const $ = id => document.getElementById(id);
+const PARAMS = readParams();
+const SAVE_KEY = 'harborview_bank_v1';
+let G = null;     // {s, hist, log, student, name, cls, attempt, actions}
+
+function readParams(){
+  const q = new URLSearchParams(location.search);
+  const sr = q.get('seed');
+  const seed = sr==='random' ? Math.floor(Math.random()*1e9) : (parseInt(sr,10) || 20261105);
+  const pick = (k,opts,def) => opts.includes(q.get(k)) ? q.get(k) : def;
+  return { seed, days: clamp(parseInt(q.get('days'),10)||60, 15, 120),
+    insurance: pick('insurance',['standard','full','none'],'standard'),
+    cb: q.get('cb')!=='off', stigma: q.get('stigma')!=='off',
+    news: pick('news',['slow','normal','fast'],'normal'),
+    endpoint: q.get('submit')||'', cls: q.get('class')||'' };
+}
+function store(){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify(G)); }catch(e){} }
+function loadSaved(){ try{ const t=localStorage.getItem(SAVE_KEY); return t?JSON.parse(t):null; }catch(e){ return null; } }
+function clearSaved(){ try{ localStorage.removeItem(SAVE_KEY); }catch(e){} }
+
+const LEVERS = [
+  {k:'depRate', label:'Deposit rate you pay', unit:'%', step:0.05, dp:2,
+   help:s=>`Competitors pay about ${fm(s.comp,2)}%. Paying more attracts deposits; paying less lets them drift away. Paying far above market looks desperate.`},
+  {k:'bonds', label:'Buy (+) or sell (−) government bonds', unit:'$M', step:1, dp:0,
+   help:s=>`Earn about ${fm(s.r+0.25,2)}% if bought today. Easy to sell (0.2% cost), but bond prices fall when interest rates rise.`},
+  {k:'newLoans', label:'Make new loans', unit:'$M', step:1, dp:0,
+   help:s=>`Today's creditworthy demand: $${s.loanDemand}M at ${fm(s.r+CFG.newLoanSpread,2)}%. Your best return, but loans can't be turned back into cash quickly.`},
+  {k:'sellLoans', label:'Sell existing loans', unit:'$M', step:1, dp:0,
+   help:s=>`Raises cash today, but buyers pay only ${Math.round((1-(modAny(s,'freeze')?CFG.freezeDisc:CFG.fireDisc))*100)}¢ per $1 of loans. The difference is a loss.`},
+  {k:'ws', label:'Borrow (+) or repay (−) wholesale funding', unit:'$M', step:1, dp:0,
+   help:s=>`Overnight money from other institutions at ${fm(s.r+CFG.wsSpread,2)}%. Lenders stop lending and pull their money if confidence drops below ${CFG.wsConfMin}.`},
+  {k:'cbx', label:'Borrow (+) or repay (−) from the central bank', unit:'$M', step:1, dp:0,
+   help:s=>s.params.cb ? `Emergency lending at ${fm(s.r+CFG.cbSpread,2)}%, backed by your bonds and loans.${s.params.stigma?' If depositors find out you borrowed here, they may get nervous.':''}` : 'Not available in this economy.'},
+  {k:'equity', label:'Issue new shares', unit:'$M', step:1, dp:0,
+   help:s=>s.conf>=CFG.eqConfMin ? `Adds capital and cash, costs a ${CFG.eqFee*100}% fee, and signals strength.` : `Investors won't buy your shares while confidence is below ${CFG.eqConfMin}.`}
+];
+
+/* ---------- intro ---------- */
+function rulesHTML(){
+  const p = PARAMS;
+  return `<h2>How it works</h2>
+  <p><b>Each day</b> you set the levers on your balance sheet. The page previews the result; nothing happens until you click <b>Submit day</b>. Then customers act, interest is paid, and news arrives.</p>
+  <p><b>Your goal:</b> maximize cumulative profit while keeping the bank alive. If the bank fails, shareholders lose everything.</p>
+  <p><b>The regulator requires:</b></p>
+  <ul style="margin:.2em 0 .6em;padding-left:1.2em">
+    <li><b>Capital ratio</b> (equity ÷ loans) ≥ ${CFG.minCap}%</li>
+    <li><b>Liquidity coverage</b> (cash + bonds ÷ a stressed 30-day outflow) ≥ ${CFG.minLiq}%</li>
+    <li><b>Cash reserve</b> (cash ÷ deposits) ≥ ${CFG.minRes}%</li>
+  </ul>
+  <p>Each rule broken costs a $${CFG.fine}M fine per day. If the capital ratio stays below the minimum for ${CFG.maxCapBreachDays} days in a row, or falls below ${CFG.closeCap}%, the regulator closes the bank.</p>
+  <p><b>The bank fails if</b> it cannot pay depositors who want their money (after emergency asset sales), if losses wipe out its equity, or if the regulator closes it.</p>
+  <p><b>Depositors</b> watch the bank. Their <b>confidence</b> depends on how strong the bank looks, the news, and what other depositors are doing. Uninsured depositors react most.</p>
+  <p class="note">To keep the game short, one game day earns about one week of interest. All amounts are in $ millions.</p>
+  <div style="margin-top:8px"><span class="tag">${p.days} days</span><span class="tag">Deposit insurance: ${({standard:'partial',full:'full',none:'none'})[p.insurance]}</span><span class="tag">Central bank lending: ${p.cb?'available':'not available'}</span><span class="tag">News speed: ${p.news}</span></div>`;
+}
+function initIntro(){
+  $('rules').innerHTML = rulesHTML();
+  document.querySelectorAll('.daysN').forEach(e=>e.textContent=PARAMS.days);
+  $('scls').value = PARAMS.cls;
+  const saved = loadSaved();
+  if(saved && saved.s && saved.s.status==='running'){
+    $('resumeBtn').classList.remove('hidden');
+    $('resumeBtn').textContent = `Resume saved game (day ${saved.s.day})`;
+  }
+  $('setupNote').textContent = PARAMS.endpoint ? 'Your results will be sent to your instructor when you finish.' : '';
+  $('startBtn').onclick = () => {
+    const sid=$('sid').value.trim();
+    if(!sid){ $('setupNote').textContent='Please enter your student ID.'; $('sid').focus(); return; }
+    const prev = loadSaved();
+    const attempt = prev && prev.student===sid ? (prev.attempt||1)+1 : 1;
+    const s = newGame(PARAMS);
+    G = { s, hist:[Object.assign(snapshot(s,0),{out:0})], log:[], student:sid, name:$('sname').value.trim(),
+          cls:$('scls').value.trim(), attempt, actions:defaultActions(s), started:new Date().toISOString() };
+    pushLog(0, 'ev', `You take charge of Harborview Bank. Equity: $${fm(equity(s))}M.`);
+    enterGame();
+  };
+  $('resumeBtn').onclick = () => { G = loadSaved(); enterGame(); };
+}
+function enterGame(){
+  $('intro').classList.add('hidden'); $('end').classList.add('hidden'); $('game').classList.remove('hidden');
+  buildLevers(); beginDay();
+}
+
+/* ---------- day flow ---------- */
+function beginDay(){
+  const s=G.s;
+  G.actions = defaultActions(s);
+  syncLevers(); render();
+  if(s.event) showEvent();
+  store();
+}
+function showEvent(){
+  const s=G.s, ev=s.event, E=EVENTS[ev.type];
+  const ch = E.choices(s, ev.data);
+  $('modalCard').innerHTML = `<div class="kicker">Day ${s.day} · ${E.kicker}</div><h3>${E.title}</h3><p>${E.body(s,ev.data)}</p>
+    <div>${ch.map((c,i)=>`<button class="choice" data-i="${i}"><b>${c.label}</b>${c.desc?`<span>${c.desc}</span>`:''}</button>`).join('')}</div>`;
+  $('modal').classList.remove('hidden');
+  $('modalCard').querySelectorAll('.choice').forEach(b=>b.onclick=()=>{
+    const label = resolveEvent(s, +b.dataset.i);
+    G.pendingEvent = {type:ev.type, choice:label};
+    pushLog(s.day,'ev',`${E.title}${ch.length>1?` → ${label}`:''}`);
+    if(s.cash<0) pushLog(s.day,'bad',`Your cash is now negative ($${fm(s.cash)}M). An asset sale has been pre-filled to cover it; adjust as you like before submitting.`);
+    $('modal').classList.add('hidden');
+    G.actions = defaultActions(s); syncLevers(); render(); store();
+  });
+}
+function submitDay(){
+  const s=G.s, a=Object.assign({},G.actions);
+  if(validate(s,a).length) return;
+  const day=s.day;
+  const rep = stepDay(s, a, false);
+  const snap = Object.assign(snapshot(s,day), {out:rep.depOut, panicOut:rep.panicOut, breaches:rep.breaches});
+  G.hist.push(snap);
+  G.log.push({ day, actions:a, event:G.pendingEvent||null,
+    rep:{profit:rep.profit, depOut:rep.depOut, panicOut:rep.panicOut, sched:rep.sched, wsOut:rep.wsOut,
+         forced:rep.forced, forcedLoss:rep.forcedLoss, emCB:rep.emCB, fines:rep.fines, breaches:rep.breaches}, snap });
+  G.pendingEvent=null;
+  rep.msgs.forEach(m=>pushLog(day,m.cls,m.t));
+  let line = `Profit ${rep.profit>=0?'+':''}${fm(rep.profit,2)}M. Deposits ${rep.depOut>0?'−':'+'}$${fm(Math.abs(rep.depOut))}M`;
+  if(rep.panicOut>0.5) line += ` (about $${fm(rep.panicOut)}M from nervous depositors)`;
+  pushLog(day, rep.panicOut>3?'bad':'', line+'.');
+  if(rep.wsOut>0.05) pushLog(day,'bad',`Wholesale lenders pulled $${fm(rep.wsOut)}M.`);
+  if(rep.forced>0) pushLog(day,'bad',`Cash ran out: emergency sale of $${fm(rep.forced)}M of assets (loss $${fm(rep.forcedLoss,2)}M)${rep.emCB>0?` and $${fm(rep.emCB)}M emergency central bank borrowing`:''}.`);
+  else if(rep.emCB>0) pushLog(day,'bad',`Emergency central bank borrowing: $${fm(rep.emCB)}M.`);
+  if(rep.breaches.length) pushLog(day,'bad',`Rule broken: ${rep.breaches.join(', ')}. Fine $${fm(rep.fines,2)}M.`);
+  advance(s);
+  if(s.status!=='running'){ clearSaved(); showEnd(); return; }
+  beginDay();
+}
+function pushLog(day,cls,t){ G.log_ui = G.log_ui||[]; G.log_ui.unshift({day,cls,t}); }
+
+/* ---------- levers ---------- */
+function buildLevers(){
+  $('levers').innerHTML = LEVERS.map(L=>`<div class="lever" id="lv-${L.k}">
+    <div class="row"><span class="lab">${L.label}</span>
+      <span class="val"><input type="number" id="n-${L.k}" step="${L.step}"><span class="mono" style="font-size:.8rem;color:var(--muted)">${L.unit}</span></span></div>
+    <input type="range" id="r-${L.k}" step="${L.step}" aria-label="${L.label}">
+    <div class="rng"><span id="min-${L.k}"></span><span id="max-${L.k}"></span></div>
+    <div class="help" id="h-${L.k}"></div></div>`).join('');
+  for(const L of LEVERS){
+    const r=$('r-'+L.k), n=$('n-'+L.k);
+    r.oninput = ()=>{ G.actions[L.k]=+(+r.value).toFixed(L.dp); n.value=G.actions[L.k]; render(); };
+    n.onchange = ()=>{ const lim=limits(G.s)[L.k]; let v=parseFloat(n.value); if(isNaN(v)) v=0;
+      v=clamp(v,lim[0],lim[1]); G.actions[L.k]=+v.toFixed(L.dp); n.value=G.actions[L.k]; r.value=v; render(); };
+  }
+  $('resetBtn').onclick = ()=>{ G.actions=defaultActions(G.s); syncLevers(); render(); };
+  $('submitBtn').onclick = submitDay;
+  $('helpBtn').onclick = ()=>{ $('modalCard').innerHTML = rulesHTML()+`<div class="btnrow"><button class="primary" id="closeHelp">Close</button></div>`;
+    $('modal').classList.remove('hidden'); $('closeHelp').onclick=()=>$('modal').classList.add('hidden'); };
+}
+function syncLevers(){
+  const s=G.s, lim=limits(s);
+  for(const L of LEVERS){
+    const [lo,hi]=lim[L.k], r=$('r-'+L.k), n=$('n-'+L.k);
+    r.min=lo; r.max=hi; n.min=lo; n.max=hi;
+    G.actions[L.k]=clamp(G.actions[L.k],lo,hi);
+    r.value=G.actions[L.k]; n.value=G.actions[L.k];
+    $('min-'+L.k).textContent = L.k==='depRate'?lo+'%':fm(lo,0);
+    $('max-'+L.k).textContent = L.k==='depRate'?hi+'%':fm(hi,0);
+    $('h-'+L.k).textContent = L.help(s);
+    const off = lo===hi;
+    $('lv-'+L.k).classList.toggle('disabled', off); r.disabled=off; n.disabled=off;
+  }
+}
+
+/* ---------- render ---------- */
+function render(){
+  const s=G.s, a=G.actions;
+  const errs = validate(s,a);
+  const t = JSON.parse(JSON.stringify(s));
+  const rep = stepDay(t, a, true);
+  $('errors').textContent = errs.join(' ');
+  $('submitBtn').disabled = errs.length>0;
+  $('submitBtn').textContent = s.day>=s.days ? 'Submit final day' : `Submit day ${s.day}`;
+  renderStats(s); renderBS(s,t); renderRegs(s,t); renderConf(s,t); renderFlows(rep,t); renderCharts($('charts'));
+  renderLog();
+}
+function renderStats(s){
+  const profit = equity(s)-s.eq0-s.raised;
+  const dRun = Math.max(1,s.day-1);
+  const roe = s.day>1 ? profit/s.eq0*CFG.daysPerYear/dRun*100 : 0;
+  const st=(k,v,extra='')=>`<div class="stat"><span class="k">${k}</span><span class="v" ${extra}>${v}</span></div>`;
+  $('stats').innerHTML =
+    `<div class="stat"><span class="k">Day</span><span class="v">${s.day} / ${s.days}</span><div class="daybar"><div style="width:${(s.day-1)/s.days*100}%"></div></div></div>`+
+    st('Confidence', Math.round(s.conf), `style="color:${s.conf<30?'var(--bad)':s.conf<60?'var(--warn)':'var(--good)'}"`)+
+    st('Equity', '$'+fm(equity(s))+'M')+
+    st('Profit so far', (profit>=0?'+':'')+fm(profit,2)+'M', `class="v ${profit>=0?'up':'down'}"`)+
+    st('ROE (annual)', fm(roe,1)+'%')+
+    st('Policy rate', fm(s.r,2)+'%');
+}
+function renderBS(s,t){
+  const row=(lab,a,b,cls='')=>{ const d=b-a; const dc=Math.abs(d)<0.05?'':(d>0?'up':'down');
+    return `<tr class="${cls}"><td>${lab}</td><td class="n">${fm(a)}</td><td class="n">${fm(b)}</td><td class="n ${dc}">${Math.abs(d)<0.05?'':(d>0?'+':'')+fm(d)}</td></tr>`; };
+  $('bs').innerHTML = `<tr><th>Item</th><th>Now</th><th>End of today</th><th>Change</th></tr>
+   <tr class="sec"><td colspan="4">Assets</td></tr>
+   ${row('Cash &amp; reserves',s.cash,t.cash)}
+   ${row(`Government bonds <span class="note">(price ${fm(s.bondPrice*100,1)})</span>`,bondsMV(s),bondsMV(t))}
+   ${row(`Loans <span class="note">(${fm(s.loanRate,2)}%)</span>`,s.loans,t.loans)}
+   ${row('Total assets',assets(s),assets(t),'tot')}
+   <tr class="sec"><td colspan="4">Liabilities &amp; equity</td></tr>
+   ${row('Insured deposits',s.depI,t.depI)}
+   ${row('Uninsured deposits',s.depU,t.depU)}
+   ${row('Wholesale funding',s.wholesale,t.wholesale)}
+   ${row('Central bank loans',s.cb,t.cb)}
+   ${row('Equity',equity(s),equity(t))}
+   ${row('Total',assets(s),assets(t),'tot')}`;
+}
+function renderRegs(s,t){
+  const a=regs(s), b=regs(t);
+  const item=(nm,def,cur,nxt,min,ok)=>{
+    const badge = ok ? (nxt<min*1.08?'<span class="badge warn">Close</span>':'<span class="badge ok">OK</span>') : '<span class="badge no">Breach</span>';
+    const f=v=>v>500?'—':fm(v,1)+'%';
+    return `<div class="reg"><span class="nm">${nm}</span>${badge}
+      <span class="mono" style="font-size:.85rem">${f(cur)} → <b>${f(nxt)}</b></span><span class="mono" style="font-size:.78rem;color:var(--muted)">min ${fm(min,1)}%</span>
+      <span class="def">${def}</span></div>`;
+  };
+  $('regs').innerHTML =
+    item('Capital ratio','Equity ÷ loans. Your cushion against losses.',a.cap,b.cap,b.capMin,b.okCap)+
+    item('Liquidity coverage','Cash + bonds ÷ withdrawals in a 30-day stress.',a.liq,b.liq,b.liqMin,b.okLiq)+
+    item('Cash reserve','Cash ÷ deposits.',a.res,b.res,b.resMin,b.okRes)+
+    (s.capBreach>0?`<p class="note" style="color:var(--bad)">Capital below minimum for ${s.capBreach} day(s). Closure at ${CFG.maxCapBreachDays}.</p>`:'');
+}
+function renderConf(s,t){
+  const tgt = confTarget(t);
+  const txt = s.conf>=60 ? 'Depositors are calm.' : s.conf>=30 ? 'Depositors are nervous. Uninsured depositors are starting to withdraw.' : 'Depositors are panicking. A run is underway.';
+  $('conf').innerHTML = `<div class="meter"><span class="tickmark" style="left:30%"></span><span class="tickmark" style="left:60%"></span>
+    <span class="pin" style="left:${s.conf}%"></span><span class="tick" style="left:${tgt}%">▲ fundamentals ${Math.round(tgt)}</span></div>
+    <div class="conf-txt">${txt} Confidence drifts toward what your fundamentals justify (▲), but withdrawals by others can drag it down further.${s.wholesale>0&&s.conf<CFG.wsConfMin?' <b>Wholesale lenders are pulling out.</b>':''}</div>`;
+}
+function renderFlows(rep,t){
+  const r=(k,v,cls='')=>`<tr class="${cls}"><td>${k}</td><td class="n mono">${(v>=0?'+':'')+fm(v,2)}</td></tr>`;
+  let h = r('Interest income',rep.inc)+r('Interest paid',-rep.intExp)+r('Operating costs',-rep.opex)+r('Normal loan losses',-rep.loss);
+  if(rep.fines) h+=r('Fines',-rep.fines);
+  if(rep.forcedLoss) h+=r('Emergency sale losses',-rep.forcedLoss);
+  h += r('Expected profit today',rep.profit,'tot');
+  h += `<tr><td colspan="2" style="padding-top:8px;color:var(--muted);font-size:.78rem">Cash movements</td></tr>`;
+  h += r('Deposit flow from rates',-rep.rateFlow);
+  if(rep.panicOut>0.05) h+=r('Nervous withdrawals (expected)',-rep.panicOut);
+  if(rep.sched>0.05) h+=r('Scheduled outflows',-rep.sched);
+  if(rep.wsOut>0.05) h+=r('Wholesale pulled',-rep.wsOut);
+  h += r('Loan repayments',rep.repay);
+  if(rep.forced>0) h+=`<tr><td colspan="2" style="color:var(--bad);font-size:.82rem">⚠ At this plan you run out of cash and must sell $${fm(rep.forced)}M of assets in an emergency.</td></tr>`;
+  if(t.status==='failed') h+=`<tr><td colspan="2" style="color:var(--bad);font-weight:600">⚠ At this plan the bank is expected to FAIL today.</td></tr>`;
+  $('flows').innerHTML = h;
+}
+function lineSVG(vals, opt={}){
+  const W=300,H=90,pad=4; const n=vals.length;
+  let lo=opt.min!=null?opt.min:Math.min(...vals), hi=opt.max!=null?opt.max:Math.max(...vals);
+  if(opt.line!=null){ lo=Math.min(lo,opt.line); hi=Math.max(hi,opt.line); }
+  if(hi-lo<1e-6){ hi+=1; lo-=1; }
+  const span=Math.max(1,(opt.days||n)-1);
+  const X=i=>pad+i/span*(W-2*pad), Yf=v=>H-pad-(v-lo)/(hi-lo)*(H-2*pad);
+  const pts=vals.map((v,i)=>`${X(i).toFixed(1)},${Yf(v).toFixed(1)}`).join(' ');
+  const ln = opt.line!=null?`<line x1="${pad}" x2="${W-pad}" y1="${Yf(opt.line)}" y2="${Yf(opt.line)}" stroke="var(--bad)" stroke-dasharray="4 3" stroke-width="1"/>`:'';
+  return `<svg viewBox="0 0 ${W} ${H}" role="img"><rect x="0" y="0" width="${W}" height="${H}" fill="var(--soft)" rx="6"/>${ln}
+    <polyline fill="none" stroke="var(--accent)" stroke-width="2" points="${pts}"/>
+    <circle cx="${X(n-1)}" cy="${Yf(vals[n-1])}" r="3" fill="var(--accent)"/></svg>`;
+}
+function renderCharts(el){
+  const h=G.hist, D=G.s.days+1;
+  const c=(t,vals,opt)=>`<div class="chart"><div class="t">${t}</div>${lineSVG(vals,Object.assign({days:D},opt))}</div>`;
+  el.innerHTML = c(`Confidence · ${Math.round(h[h.length-1].conf)}`,h.map(x=>x.conf),{min:0,max:100,line:30})+
+    c(`Cash · $${fm(h[h.length-1].cash)}M`,h.map(x=>x.cash),{min:0})+
+    c(`Profit to date · ${h[h.length-1].profit<0?'−':'+'}$${fm(Math.abs(h[h.length-1].profit),2)}M`,h.map(x=>x.profit),{line:0})+
+    c(`Deposits · $${fm(h[h.length-1].depI+h[h.length-1].depU)}M`,h.map(x=>x.depI+x.depU),{});
+}
+function renderLog(){
+  $('log').innerHTML = (G.log_ui||[]).slice(0,120).map(l=>`<li class="${l.cls}"><span class="d">D${l.day}</span>${l.t}</li>`).join('');
+}
+
+/* ---------- end ---------- */
+function showEnd(){
+  const s=G.s, sm=summary(s,G.hist);
+  G.summary=sm; G.finished=new Date().toISOString();
+  $('game').classList.add('hidden'); const el=$('end'); el.classList.remove('hidden');
+  const reasons = {
+    illiquid: `On day ${sm.failDay}, the bank could not pay depositors who wanted their money, even after selling assets in an emergency.${sm.equityEnd>0?` Note: at that moment the bank still had <b>positive equity ($${fm(sm.equityEnd)}M)</b>. It was solvent but not liquid.`:''}`,
+    insolvent: `On day ${sm.failDay}, losses wiped out the bank's equity. Its assets were worth less than what it owed.`,
+    closed: `On day ${sm.failDay}, the regulator closed the bank because its capital was too low for too long.`
+  };
+  const card=(k,v)=>`<div class="panel"><div class="k">${k}</div><div class="v">${v}</div></div>`;
+  el.innerHTML = `<h1>Game over</h1>
+    <div class="outcome ${sm.survived?'ok':'no'}">${sm.survived?`Harborview survived all ${s.days} days.`:'Harborview Bank failed.'}</div>
+    ${sm.survived?'':`<p>${reasons[sm.outcome]}${sm.forcedLoss>1?` Emergency asset sales during withdrawals cost the bank <b>$${fm(sm.forcedLoss,1)}M</b> along the way.`:''}</p>`}
+    <div class="statgrid">
+      ${card('Score', (sm.score>=0?'+':'')+fm(sm.score,2)+'M')}
+      ${card('Profit', (sm.profit>=0?'+':'')+fm(sm.profit,2)+'M')}
+      ${card('ROE (annualized)', fm(sm.roe,1)+'%')}
+      ${card('Fines paid', '$'+fm(sm.fines,2)+'M')}
+      ${card('Emergency sale losses', '$'+fm(sm.forcedLoss,2)+'M')}
+      ${card('Lowest confidence', Math.round(sm.minConf))}
+      ${card('Days breaking a rule', sm.breachDays)}
+    </div>
+    <p class="note">Score = profit if the bank survived; if it failed, shareholders lose their entire initial equity (−$${fm(s.eq0)}M).</p>
+    <div class="panel" style="margin:14px 0"><h2>Your bank over time</h2><div class="charts" id="endCharts"></div></div>
+    <div class="panel"><h2>Reflection</h2>
+      <div class="field"><label for="q1">1. What was the most dangerous moment for your bank? What caused it: real losses, or other people's behavior?</label><textarea id="q1"></textarea></div>
+      <div class="field"><label for="q2">2. Did any depositors withdraw even though the bank was still healthy? Why would a rational depositor do that?</label><textarea id="q2"></textarea></div>
+      <div class="field"><label for="q3">3. If you were the regulator, which one rule or policy would you change to make banks like yours safer? What could go wrong with it?</label><textarea id="q3"></textarea></div>
+      <div class="btnrow" style="justify-content:flex-start;flex-wrap:wrap">
+        ${PARAMS.endpoint?'<button class="primary" id="sendBtn">Submit results</button>':''}
+        <button id="dlBtn">Download my data</button>
+        <button id="againBtn" class="ghost">Play again</button>
+      </div>
+      <p class="note" id="sendNote"></p>
+    </div>`;
+  renderCharts($('endCharts'));
+  $('dlBtn').onclick = ()=>{ const blob=new Blob([JSON.stringify(payload(),null,1)],{type:'application/json'});
+    const u=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=u; a.download=`bank_${G.student||'game'}.json`; a.click(); setTimeout(()=>URL.revokeObjectURL(u),2000); };
+  $('againBtn').onclick = ()=>location.reload();
+  if(PARAMS.endpoint) $('sendBtn').onclick = sendResults;
+}
+function payload(){
+  const s=G.s;
+  return { version:1, student:G.student, name:G.name, cls:G.cls, attempt:G.attempt, started:G.started, finished:G.finished,
+    params:s.params, summary:G.summary,
+    reflection:{q1:($('q1')||{}).value||'', q2:($('q2')||{}).value||'', q3:($('q3')||{}).value||''},
+    events:s.schedule.map(e=>({day:e.day,type:e.type,choice:e.choice||null})),
+    days:G.log.map(l=>Object.assign({day:l.day, event:l.event?l.event.type:'', choice:l.event?l.event.choice:''},
+      prefix('a_',l.actions), prefix('r_',l.rep), prefix('s_',l.snap))) };
+}
+function prefix(p,o){ const r={}; for(const k in o){ if(k==='day') continue; let v=o[k]; if(Array.isArray(v)) v=v.join('|'); if(typeof v==='number') v=+v.toFixed(4); r[p+k]=v; } return r; }
+function sendResults(){
+  const btn=$('sendBtn'); btn.disabled=true; $('sendNote').textContent='Sending…';
+  fetch(PARAMS.endpoint,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload())})
+    .then(()=>{ $('sendNote').textContent='Sent. (If your instructor asks, you can also download your data as a backup.)'; btn.textContent='Submitted'; })
+    .catch(()=>{ btn.disabled=false; $('sendNote').textContent='Could not send. Check your connection and try again, or download your data and upload it where your instructor asks.'; });
+}
+
+initIntro();
+</script>
+</body>
+</html>
