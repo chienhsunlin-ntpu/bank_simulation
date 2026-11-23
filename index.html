@@ -239,7 +239,7 @@ const modAny  = (s,t) => activeMods(s,t).length>0;
 function regs(s){
   const e = equity(s);
   const cap = s.loans>0.01 ? e/s.loans*100 : 999;
-  const stressOut = 0.05*s.depI + 0.15*s.depU + s.wholesale;
+  const stressOut = 0.05*s.depI + 0.15*s.depU + s.wholesale + s.cb;   // CB loans are short-term: they must be repaid within the stress window
   const liq = stressOut>0.01 ? (s.cash + 0.95*bondsMV(s))/stressOut*100 : 999;
   const res = deposits(s)>0.01 ? s.cash/deposits(s)*100 : 999;
   const capMin = CFG.minCap + modSum(s,'capAdd');
@@ -249,7 +249,9 @@ function regs(s){
 // What depositors would think of the bank in calm times, based on visible fundamentals.
 function confTarget(s){
   const g = regs(s);
-  return clamp(55 + 3*(Math.min(g.cap,25)-10) + 15*clamp(g.liq/100-1,-1,1), 5, 95);
+  // With stigma, outstanding central bank loans are read as a sign of trouble for as long as they are outstanding.
+  const stig = (s.params.stigma && s.cb>0) ? Math.min(12, 100*s.cb/Math.max(1,deposits(s))) : 0;
+  return clamp(55 + 3*(Math.min(g.cap,25)-10) + 15*clamp(g.liq/100-1,-1,1) - stig, 5, 95);
 }
 
 /* ---------- events ---------- */
@@ -599,7 +601,7 @@ const LEVERS = [
   {k:'ws', label:'Borrow (+) or repay (−) wholesale funding', unit:'$M', step:1, dp:0,
    help:s=>`Overnight money from other institutions at ${fm(s.r+CFG.wsSpread,2)}%. Lenders stop lending and pull their money if confidence drops below ${CFG.wsConfMin}.`},
   {k:'cbx', label:'Borrow (+) or repay (−) from the central bank', unit:'$M', step:1, dp:0,
-   help:s=>s.params.cb ? `Emergency lending at ${fm(s.r+CFG.cbSpread,2)}%, backed by your bonds and loans.${s.params.stigma?' If depositors find out you borrowed here, they may get nervous.':''}` : 'Not available in this economy.'},
+   help:s=>s.params.cb ? `Emergency lending at ${fm(s.r+CFG.cbSpread,2)}%, backed by your bonds and loans. It must be repaid soon, so it only helps your liquidity ratio when that ratio is below 100%.${s.params.stigma?' Depositors who see you borrowing here get nervous for as long as the loan is outstanding.':''}` : 'Not available in this economy.'},
   {k:'equity', label:'Issue new shares', unit:'$M', step:1, dp:0,
    help:s=>s.conf>=CFG.eqConfMin ? `Adds capital and cash, costs a ${CFG.eqFee*100}% fee, and signals strength.` : `Investors won't buy your shares while confidence is below ${CFG.eqConfMin}.`}
 ];
