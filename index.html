@@ -94,9 +94,13 @@ table{width:100%;border-collapse:collapse}
 .badge.warn{background:var(--warn-bg);color:var(--warn)}
 .meter{position:relative;height:14px;border-radius:7px;background:linear-gradient(90deg,var(--bad) 0 30%,var(--warn) 30% 60%,var(--good) 60% 100%);opacity:.9;margin:6px 0 4px}
 .meter .pin{position:absolute;top:-4px;width:4px;height:22px;background:var(--ink);border-radius:2px;transform:translateX(-2px)}
-.meter .tick{position:absolute;top:16px;font-size:.68rem;color:var(--muted);transform:translateX(-50%);white-space:nowrap}
+.meter .tri{position:absolute;top:13px;font-size:.8rem;line-height:1;color:var(--ink);transform:translateX(-50%)}
 .meter .tickmark{position:absolute;top:0;width:2px;height:14px;background:var(--panel);transform:translateX(-1px)}
-.conf-txt{font-size:.82rem;color:var(--muted);margin-top:20px}
+.conf-legend{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:.8rem;margin-top:18px}
+.conf-legend .lg-pin{display:inline-block;width:4px;height:12px;background:var(--ink);border-radius:2px;margin-right:6px;vertical-align:-1px}
+.conf-legend .lg-tri{margin-right:4px;font-size:.75rem}
+.conf-legend .note{margin:0;font-size:.75rem}
+.conf-txt{font-size:.82rem;color:var(--muted);margin-top:6px}
 .flows td{padding:3px 0;font-size:.86rem;border-bottom:1px dotted var(--line)}
 .flows td.n{text-align:right}
 .flows tr.tot td{font-weight:600;border-bottom:none}
@@ -795,7 +799,8 @@ function renderConf(s,t){
   const tgt = confTarget(t);
   const txt = s.conf>=60 ? 'Depositors are calm.' : s.conf>=30 ? 'Depositors are nervous. Uninsured depositors are starting to withdraw.' : 'Depositors are panicking. A run is underway.';
   $('conf').innerHTML = `<div class="meter"><span class="tickmark" style="left:30%"></span><span class="tickmark" style="left:60%"></span>
-    <span class="pin" style="left:${s.conf}%"></span><span class="tick" style="left:${tgt}%">▲ fundamentals ${Math.round(tgt)}</span></div>
+    <span class="pin" style="left:${s.conf}%"></span><span class="tri" style="left:${tgt}%">▲</span></div>
+    <div class="conf-legend"><span><i class="lg-pin"></i>Now <b class="mono">${Math.round(s.conf)}</b></span><span><span class="lg-tri">▲</span>Fundamentals <b class="mono">${Math.round(tgt)}</b> <span class="note">(after today's decisions)</span></span></div>
     <div class="conf-txt">${txt} Confidence drifts toward what your fundamentals justify (▲), but withdrawals by others can drag it down further.${s.wholesale>0&&s.conf<CFG.wsConfMin?' <b>Wholesale lenders are pulling out.</b>':''}</div>`;
 }
 function renderFlows(rep,t){
